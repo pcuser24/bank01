@@ -50,7 +50,7 @@ jobs:
       - name: Run migration
         run: make migrateup
         env:
-          DB_SOURCE: postgres://root:mysecret@postgres:5432/simplebank?sslmode=disable
+          DB_SOURCE: postgres://root:mysecret@localhost:5432/simplebank?sslmode=disable
 
       - name: Build dependencies
         run: go get ./...
