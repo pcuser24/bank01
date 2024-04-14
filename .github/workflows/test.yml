@@ -57,5 +57,17 @@ jobs:
 
       - name: Test
         run: |
-          cp .env.example app.env
+          touch app.env
           go test -v ./...
+        env:
+          ENVIRONMENT: test
+          DB_SOURCE: postgres://root:mysecret@localhost:5432/simplebank?sslmode=disable
+          DB_DRIVER: postgres
+          HTTP_SERVER_ADDRESS: 0.0.0.0:8080
+          ACCESS_TOKEN_DURATION: 10m
+          TOKEN_SYMMETRIC_KEY: cae1X53au6agHqAOulzCRhgDr0BG52yv
+          AWS_REGION: ap-southeast-1
+          AWS_ACCESS_KEY_ID: abc
+          AWS_SECRET_ACCESS_KEY: abc
+          AWS_S3_BUCKET: abc
+
