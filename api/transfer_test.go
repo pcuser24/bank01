@@ -4,17 +4,19 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
-	mockdb "github.com/user2410/simplebank/db/mock"
-	db "github.com/user2410/simplebank/db/sqlc"
-	"github.com/user2410/simplebank/token"
-	"github.com/user2410/simplebank/util"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+	mockdb "github.com/user2410/simplebank/db/mock"
+	db "github.com/user2410/simplebank/db/sqlc"
+	"github.com/user2410/simplebank/storage"
+	"github.com/user2410/simplebank/token"
+	"github.com/user2410/simplebank/util"
+	gomock "go.uber.org/mock/gomock"
 )
 
 func TestTransferAPI(t *testing.T) {
@@ -190,7 +192,10 @@ func TestTransferAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			fstorage := storage.NewMockStorage(ctl)
+
+			// start http server
+			server := newTestServer(t, store, fstorage)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)

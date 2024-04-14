@@ -2,73 +2,102 @@ package api
 
 import (
 	"database/sql"
-	"github.com/gin-gonic/gin"
-	"github.com/lib/pq"
-	db "github.com/user2410/simplebank/db/sqlc"
-	"github.com/user2410/simplebank/util"
+	"log"
+	"mime/multipart"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	db "github.com/user2410/simplebank/db/sqlc"
+	"github.com/user2410/simplebank/util"
 )
 
 type createUserRequest struct {
-	Username string `json:"username" binding:"required,alphanum"`
-	Password string `json:"password" binding:"required,min=6"`
-	FullName string `json:"fullname" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
+	Username string                `form:"username" binding:"required,alphanum"`
+	Password string                `form:"password" binding:"required,min=6"`
+	FullName string                `form:"fullname" binding:"required"`
+	Avatar   *multipart.FileHeader `form:"avatar"`
+	Email    string                `form:"email" binding:"required,email"`
 }
 
 type userResponse struct {
 	Username  string    `json:"username"`
-	FullName  string    `json:"full_name"`
+	FullName  string    `json:"fullname"`
 	Email     string    `json:"email"`
+	Avatar    *string   `json:"avatar"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 func newUserResponse(user db.User) userResponse {
-	return userResponse{
+	ur := userResponse{
 		Username:  user.Username,
 		FullName:  user.FullName,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
 	}
+	if user.Avatar.Valid {
+		ur.Avatar = &user.Avatar.String
+	}
+	return ur
 }
 
 func (server *Server) createUser(ctx *gin.Context) {
 	var req createUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	form, err := ctx.MultipartForm()
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	hashedPassword, err := util.HashPassword(req.Password)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	arg := db.CreateUserParams{
-		Username: req.Username,
-		Password: hashedPassword,
-		FullName: req.FullName,
-		Email:    req.Email,
-	}
-
-	user, err := server.store.CreateUser(ctx, arg)
-	if err != nil {
-		if dbErr, ok := err.(*pq.Error); ok {
-			switch dbErr.Code {
-			case "23505", "23514":
-				ctx.JSON(http.StatusForbidden, errorResponse(err))
-				return
-			}
+	// handle upload to S3
+	fileHeaders := form.File["avatar"]
+	if len(fileHeaders) >= 1 {
+		fileHeader := fileHeaders[0]
+		file, err := fileHeader.Open()
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		log.Println("file info:", fileHeader.Filename, fileHeader.Header.Get("Content-Type"), fileHeader.Size)
+		avatarUrl, err := server.fileStorage.PutFile(file, fileHeader.Filename, fileHeader.Header.Get("Content-Type"), fileHeader.Size)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		log.Println("avatarUrl:", avatarUrl)
 	}
 
-	res := newUserResponse(user)
+	log.Println(req)
 
-	ctx.JSON(http.StatusOK, res)
+	// hashedPassword, err := util.HashPassword(req.Password)
+	// if err != nil {
+	// 	ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	// 	return
+	// }
+
+	// arg := db.CreateUserParams{
+	// 	Username: req.Username,
+	// 	Password: hashedPassword,
+	// 	FullName: req.FullName,
+	// 	Email:    req.Email,
+	// }
+
+	// user, err := server.store.CreateUser(ctx, arg)
+	// if err != nil {
+	// 	if dbErr, ok := err.(*pq.Error); ok {
+	// 		switch dbErr.Code {
+	// 		case "23505", "23514":
+	// 			ctx.JSON(http.StatusForbidden, errorResponse(err))
+	// 			return
+	// 		}
+	// 	}
+	// 	ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	// 	return
+	// }
+
+	// res := newUserResponse(user)
+
+	// ctx.JSON(http.StatusOK, res)
 }
 
 type loginUserRequest struct {

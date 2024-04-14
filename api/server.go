@@ -2,30 +2,36 @@ package api
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
-	db "github.com/user2410/simplebank/db/sqlc"
-	"github.com/user2410/simplebank/token"
-	"github.com/user2410/simplebank/util"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
+	db "github.com/user2410/simplebank/db/sqlc"
+	"github.com/user2410/simplebank/storage"
+	"github.com/user2410/simplebank/token"
+	"github.com/user2410/simplebank/util"
 )
 
 // Server serve HTTP requests for banking services
 type Server struct {
-	config     util.Config
-	store      db.Store
-	tokenMaker token.Maker
-	router     *gin.Engine
+	config      util.Config
+	store       db.Store
+	fileStorage storage.Storage
+	tokenMaker  token.Maker
+	router      *gin.Engine
 }
 
 // NewServer creates a new HTTP server instance and setup routing
-func NewServer(config util.Config, store db.Store) (*Server, error) {
+func NewServer(config util.Config, store db.Store, fileStorage storage.Storage) (*Server, error) {
 	// Setup token maker
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
@@ -33,21 +39,42 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 	}
 
 	server := &Server{
-		config:     config,
-		tokenMaker: tokenMaker,
-		store:      store,
+		config:      config,
+		tokenMaker:  tokenMaker,
+		store:       store,
+		fileStorage: fileStorage,
 	}
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("currency", validCurrency)
 	}
 
-	server.setupRouter()
+	server.setupRouter(config.Environment)
 	return server, nil
 }
 
-func (server *Server) setupRouter() {
+func (server *Server) setupRouter(env string) {
 	router := gin.Default()
+
+	// Setup logger
+	if strings.ToLower(env) == "production" {
+		gin.DisableConsoleColor()
+		// make directory /tmp/simplebank if not exists
+		err := os.MkdirAll("/tmp/simplebank", os.ModePerm)
+		if err != nil {
+			log.Fatal("cannot create log directory:", err)
+		}
+		// create new log file
+		fname := fmt.Sprintf("/tmp/simplebank/server-%s.log", time.Now().Format("2006-01-02"))
+		f, err := os.OpenFile(fname, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+		if err != nil {
+			log.Fatal("cannot create log file:", err)
+		}
+		// set logger
+		gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+	}
+
+	router.GET("/healthcheck", server.healthcheck)
 
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)

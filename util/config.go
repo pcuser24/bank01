@@ -1,16 +1,23 @@
 package util
 
 import (
-	"github.com/spf13/viper"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 type Config struct {
+	Environment         string        `mapstructure:"ENVIRONMENT"`
 	DBDriver            string        `mapstructure:"DB_DRIVER"`
 	DBSource            string        `mapstructure:"DB_SOURCE"`
 	ServerAddress       string        `mapstructure:"HTTP_SERVER_ADDRESS"`
 	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	AWSRegion           string        `mapstructure:"AWS_REGION" validate:"required"`
+	AWSAccessKeyID      string        `mapstructure:"AWS_ACCESS_KEY_ID" validate:"required"`
+	AWSSecretAccessKey  string        `mapstructure:"AWS_SECRET_ACCESS_KEY" validate:"required"`
+	AWSS3Endpoint       *string       `mapstructure:"AWS_S3_ENDPOINT" validate:"omitempty"`
+	AWSS3Bucket         string        `mapstructure:"AWS_S3_BUCKET" validate:"required"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
