@@ -55,6 +55,6 @@ func (c *S3Client) PutObject(ctx context.Context, params *s3.PutObjectInput, opt
 	return c.s3Client.PutObject(ctx, params, optFns...)
 }
 
-func (c *S3Client) contructS3ObjectURL(bucketName string, objectKey string) string {
-	return "https://" + bucketName + ".s3." + c.conf.Region + ".amazonaws.com/" + objectKey
-}
+// func (c *S3Client) contructS3ObjectURL(bucketName string, objectKey string) string {
+// 	return "https://" + bucketName + ".s3." + c.conf.Region + ".amazonaws.com/" + objectKey
+// }

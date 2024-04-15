@@ -11,6 +11,7 @@ import (
 )
 
 type Storage interface {
+	// PutFile saves the file to the storage and returns the key of the file
 	PutFile(file io.Reader, fname, ftype string, fsize int64) (string, error)
 }
 
@@ -40,5 +41,5 @@ func (s *s3Storage) PutFile(file io.Reader, fname, ftype string, fsize int64) (s
 		return "", err
 	}
 
-	return s.s3.contructS3ObjectURL(s.bucketName, objectKey), nil
+	return objectKey, nil
 }
