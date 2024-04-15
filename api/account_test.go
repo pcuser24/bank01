@@ -5,18 +5,20 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
-	mockdb "github.com/user2410/simplebank/db/mock"
-	db "github.com/user2410/simplebank/db/sqlc"
-	"github.com/user2410/simplebank/token"
-	"github.com/user2410/simplebank/util"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+	mockdb "github.com/user2410/simplebank/db/mock"
+	db "github.com/user2410/simplebank/db/sqlc"
+	"github.com/user2410/simplebank/storage"
+	"github.com/user2410/simplebank/token"
+	"github.com/user2410/simplebank/util"
+	gomock "go.uber.org/mock/gomock"
 )
 
 func randomAccount(owner string) db.Account {
@@ -170,8 +172,10 @@ func TestGetAccountAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctl)
 			tc.buildStubs(store)
 
+			fstorage := storage.NewMockStorage(ctl)
+
 			// start http server
-			server := newTestServer(t, store)
+			server := newTestServer(t, store, fstorage)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/accounts/%d", tc.accountID)
@@ -282,7 +286,9 @@ func TestCreateAccountAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			fstorage := storage.NewMockStorage(ctrl)
+
+			server := newTestServer(t, store, fstorage)
 			recorder := httptest.NewRecorder()
 
 			// Marshal body data to JSON
@@ -429,7 +435,9 @@ func TestListAccountsAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			fstorage := storage.NewMockStorage(ctrl)
+
+			server := newTestServer(t, store, fstorage)
 			recorder := httptest.NewRecorder()
 
 			url := "/accounts"

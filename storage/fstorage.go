@@ -1,0 +1,46 @@
+package storage
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+)
+
+const MAX_FILE_SIZE = 1024 * 1024 * 10 // 10MB
+
+type Storage interface {
+	PutFile(file io.Reader, fname, ftype string, fsize int64) (string, error)
+}
+
+type s3Storage struct {
+	bucketName string
+	s3         *S3Client
+}
+
+func NewS3Storage(s3 *S3Client, bucketName string) Storage {
+	return &s3Storage{
+		s3:         s3,
+		bucketName: bucketName,
+	}
+}
+
+func (s *s3Storage) PutFile(file io.Reader, fname, ftype string, fsize int64) (string, error) {
+	objectKey := fmt.Sprintf("%s_%d.%s", fname, time.Now().Unix(), ftype)
+
+	_, err := s.s3.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:        aws.String(s.bucketName),
+		Key:           aws.String(objectKey),
+		ContentLength: aws.Int64(fsize),
+		ContentType:   aws.String(ftype),
+		Body:          file,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return s.s3.contructS3ObjectURL(s.bucketName, objectKey), nil
+}

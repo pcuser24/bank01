@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"database/sql"
+	"log"
+	"time"
+
 	_ "github.com/lib/pq"
 	"github.com/user2410/simplebank/api"
 	db "github.com/user2410/simplebank/db/sqlc"
+	"github.com/user2410/simplebank/storage"
 	"github.com/user2410/simplebank/util"
-	"log"
-	"time"
 )
 
 func main() {
@@ -42,8 +44,19 @@ func main() {
 
 	store := db.NewStore(conn)
 
+	s3Client, err := storage.NewS3Client(
+		config.AWSRegion,
+		config.AWSAccessKeyID,
+		config.AWSSecretAccessKey,
+		config.AWSS3Endpoint,
+	)
+	if err != nil {
+		log.Fatal("Error while initializing AWS S3 client", err)
+	}
+	storage := storage.NewS3Storage(s3Client, config.AWSS3Bucket)
+
 	// Start the server
-	server, err := api.NewServer(config, store)
+	server, err := api.NewServer(config, store, storage)
 	if err != nil {
 		log.Fatal("Failed to create server:", err.Error())
 	}
