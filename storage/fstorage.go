@@ -10,8 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-const MAX_FILE_SIZE = 1024 * 1024 * 10 // 10MB
-
 type Storage interface {
 	PutFile(file io.Reader, fname, ftype string, fsize int64) (string, error)
 }
