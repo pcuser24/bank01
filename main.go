@@ -46,8 +46,6 @@ func main() {
 
 	s3Client, err := storage.NewS3Client(
 		config.AWSRegion,
-		config.AWSAccessKeyID,
-		config.AWSSecretAccessKey,
 		config.AWSS3Endpoint,
 	)
 	if err != nil {

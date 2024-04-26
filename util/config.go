@@ -14,8 +14,6 @@ type Config struct {
 	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	AWSRegion           string        `mapstructure:"AWS_REGION" validate:"required"`
-	AWSAccessKeyID      string        `mapstructure:"AWS_ACCESS_KEY_ID" validate:"required"`
-	AWSSecretAccessKey  string        `mapstructure:"AWS_SECRET_ACCESS_KEY" validate:"required"`
 	AWSS3Endpoint       *string       `mapstructure:"AWS_S3_ENDPOINT" validate:"omitempty"`
 	AWSS3Bucket         string        `mapstructure:"AWS_S3_BUCKET" validate:"required"`
 }

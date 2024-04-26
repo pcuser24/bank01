@@ -14,9 +14,8 @@ type S3Client struct {
 	presigner *s3.PresignClient
 }
 
-// Set environment variables: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 func NewS3Client(
-	region, keyID, secretKey string,
+	region string,
 	endpoint *string,
 ) (*S3Client, error) {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
